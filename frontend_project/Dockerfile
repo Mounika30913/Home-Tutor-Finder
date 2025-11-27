@@ -1,28 +1,27 @@
-# ===== Build stage =====
-FROM node:20-alpine AS build
+# Step 1: Build the Vite app
+FROM node:18-alpine AS build
+
 WORKDIR /app
 
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Ensure Vite is available (in case it wasn't added properly)
-RUN npm install --save-dev vite
-
-# Install project dependencies (including devDependencies)
 RUN npm install
 
-# Copy the rest of the frontend source code
+# Fix Windows permission issue
+RUN chmod -R 755 /app/node_modules/.bin
+
 COPY . .
 
-# Build the production bundle (uses "build" script in package.json)
 RUN npm run build
 
-# ===== Serve stage =====
-FROM nginx:stable-alpine
+# Step 2: Run a production server
+FROM node:18-alpine
 
-# For Vite, the production build output is in "dist"
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-EXPOSE 80
+COPY --from=build /app/dist ./dist
+COPY package*.json ./
+RUN npm install -g serve
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
+
+CMD ["serve", "-s", "dist", "-l", "3000"]
