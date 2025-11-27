@@ -1,27 +1,28 @@
-# Step 1: Build the Vite app
+# Step 1: Build Stage
 FROM node:18-alpine AS build
 
 WORKDIR /app
 
-COPY package*.json ./
+# Install dependencies
+COPY package.json package-lock.json ./
 RUN npm install
 
-# Fix Windows permission issue
-RUN chmod -R 755 /app/node_modules/.bin
-
+# Copy all frontend source code
 COPY . .
 
+# Fix Vite permission issue
+RUN chmod +x node_modules/.bin/vite
+
+# Run the build
 RUN npm run build
 
-# Step 2: Run a production server
-FROM node:18-alpine
 
-WORKDIR /app
+# Step 2: Production Stage
+FROM nginx:alpine
 
-COPY --from=build /app/dist ./dist
-COPY package*.json ./
-RUN npm install -g serve
+# Copy build output to Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 3000
+EXPOSE 80
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["nginx", "-g", "daemon off;"]
