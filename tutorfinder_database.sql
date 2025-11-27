@@ -1,0 +1,1 @@
+-- SQL seed placeholder; can be replaced with full schema.
